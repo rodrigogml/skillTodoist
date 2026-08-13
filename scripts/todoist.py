@@ -149,6 +149,19 @@ def substitute(path: str, params: Mapping[str, Any]) -> str:
     return path
 
 
+SENSITIVE_KEYS = {"token", "access_token", "refresh_token", "client_secret", "password", "secret"}
+
+
+def sanitize(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {key: "[REDACTED]" if str(key).lower() in SENSITIVE_KEYS else sanitize(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [sanitize(item) for item in value]
+    if isinstance(value, str) and ("token=" in value.lower() or "access_token=" in value.lower()):
+        return "[REDACTED_URL]"
+    return value
+
+
 class Client:
     def __init__(self, settings: Settings, token: str):
         self.settings, self.token = settings, token
@@ -175,7 +188,7 @@ class Client:
                     if not raw:
                         return None
                     try:
-                        return json.loads(raw)
+                        return sanitize(json.loads(raw))
                     except json.JSONDecodeError:
                         return {"raw_base64": base64.b64encode(raw).decode("ascii")}
             except HTTPError as exc:
@@ -211,7 +224,7 @@ class Client:
         )
         try:
             with urlopen(request, timeout=self.settings.timeout) as response:
-                return json.loads(response.read())
+                return sanitize(json.loads(response.read()))
         except (HTTPError, URLError, json.JSONDecodeError):
             fail("upload_failed", "O upload para a API Todoist falhou.")
 
@@ -222,7 +235,7 @@ class Client:
         request = Request(self.settings.api_base + "/sync", data=body, headers={"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}, method="POST")
         try:
             with urlopen(request, timeout=self.settings.timeout) as response:
-                return json.loads(response.read())
+                return sanitize(json.loads(response.read()))
         except (HTTPError, URLError, json.JSONDecodeError):
             fail("sync_failed", "A sincronização Todoist falhou.")
 

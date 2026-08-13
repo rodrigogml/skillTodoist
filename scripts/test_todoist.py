@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from todoist import Client, TodoistError, load_settings, read_token
+from todoist import Client, TodoistError, load_settings, read_token, sanitize
 
 
 class TodoistTests(unittest.TestCase):
@@ -59,6 +59,10 @@ auth_json = {\"mode\":\"windows_credential_manager\",\"target\":\"test\"}
         client = Client(load_settings(str(self.profile())), "x")
         with self.assertRaises(TodoistError):
             client.request("uploads.create", {}, {}, {})
+
+    def test_sanitizes_api_tokens_in_responses(self):
+        self.assertEqual(sanitize({"token": "secret", "nested": {"access_token": "also-secret"}}), {"token": "[REDACTED]", "nested": {"access_token": "[REDACTED]"}})
+        self.assertEqual(sanitize("wss://example.test/ws?token=secret"), "[REDACTED_URL]")
 
 
 if __name__ == "__main__":
