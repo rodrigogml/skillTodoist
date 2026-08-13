@@ -256,7 +256,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             data = client.sync(request.get("commands", []), request.get("sync_token", "*"))
         else:
             data = client.request(operation, request.get("params", {}), request.get("query", {}), request.get("body"))
-        print(json.dumps({"version": 1, "ok": True, "operation": operation, "data": data}, ensure_ascii=False))
+        print(json.dumps({"version": 1, "ok": True, "operation": operation, "data": data}, ensure_ascii=True))
         return 0
     except json.JSONDecodeError:
         error = {"code": "invalid_json", "message": "A entrada não contém JSON válido."}
@@ -264,7 +264,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         error = {"code": exc.code, "message": exc.message}
     except Exception:
         error = {"code": "internal_error", "message": "Falha interna ao processar a solicitação."}
-    print(json.dumps({"version": 1, "ok": False, "error": error}, ensure_ascii=False))
+    print(json.dumps({"version": 1, "ok": False, "error": error}, ensure_ascii=True))
     return 1
 
 
